@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const mongoose = require('mongoose')
 const User = require('./models/User')
+const cors = require('cors')
+
 
 
 mongoose.Promise = global.Promise
@@ -14,13 +16,14 @@ mongoose.connect('mongodb+srv://arun:1234@cluster0.xs8jb.mongodb.net/?retryWrite
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-const users = require('./routes/users');
+const users = require('./routes/user_router');
 
 var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
+app.use(cors());
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -31,6 +34,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/user', users)
+app.use('/register', users)
+app.use('/login', users)
+app.use('/logout', users)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -47,5 +53,13 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://10.30.136.55:3000'],  // Adjust for your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
 
 module.exports = app;
