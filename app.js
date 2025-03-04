@@ -17,6 +17,7 @@ mongoose.connect('mongodb+srv://arun:1234@cluster0.xs8jb.mongodb.net/?retryWrite
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 const users = require('./routes/user_router');
+const authRouter = require('./routes/auth_router');
 
 var app = express();
 
@@ -34,9 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/user', users)
-app.use('/register', users)
-app.use('/login', users)
-app.use('/logout', users)
+app.use('/auth', authRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
