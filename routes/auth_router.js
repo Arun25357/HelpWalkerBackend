@@ -5,25 +5,28 @@ const bcrypt = require('bcrypt')
 
 // Register a new user
 router.post('/register', async (req, res) => {
-    const { user_name, user_email, user_password, user_phone, user_address } = req.body
-    console.log('register : ',req.body)
+    const { user_name, user_email, user_password, user_phone, user_address } = req.body;
+    console.log('Request body:', req.body); // log ข้อมูลที่ได้รับจาก frontend
+    
     if (!user_name || !user_email || !user_password || !user_phone || !user_address) {
-        return res.status(400).send('All fields are required')
+        return res.status(400).send('All fields are required');
     }
-    const newUser = new User({ user_name, user_email, user_password, user_phone, user_address })
+
+    const newUser = new User({ user_name, user_email, user_password, user_phone, user_address });
     try {
-        const savedUser = await newUser.save()
-        res.status(201).send(savedUser)
+        const savedUser = await newUser.save();
+        res.status(201).send(savedUser);
     } catch (err) {
+        console.error('Error during registration:', err);  // log ข้อผิดพลาด
         if (err.name === 'ValidationError') {
-            return res.status(400).send(`Validation Error: ${err.message}`)
+            return res.status(400).send(`Validation Error: ${err.message}`);
         }
         if (err.code === 11000) {
-            return res.status(400).send('Email already exists')
+            return res.status(400).send('Email already exists');
         }
-        res.status(500).send('Internal Server Error')
+        res.status(500).send('Internal Server Error');
     }
-})
+});
 
 // Login a user
 router.post('/login', async (req, res) => {
