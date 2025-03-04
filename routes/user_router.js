@@ -3,17 +3,21 @@ const router = express.Router()
 const mongoose = require('mongoose')
 const User = require('../models/User')
 
-router.get('/', async (req, res) => {
+// Get user by ID
+router.get('/:id', async (req, res) => {
     try {
-        const users = await User.find()
-        res.status(200).send(users)
+        const user = await User.findById(req.params.id)
+        if (!user) {
+            return res.status(404).send('User not found')
+        }
+        res.status(200).send(user)
     } catch (err) {
         res.status(500).send(err)
     }
 })
 
-// Register a new user
-router.post('/register', async (req, res) => {
+// Create a new user
+router.post('/', async (req, res) => {
     const { user_name, user_email, user_password, user_phone, user_address } = req.body
     if (!user_name || !user_email || !user_password || !user_phone || !user_address) {
         return res.status(400).send('All fields are required')
@@ -30,54 +34,6 @@ router.post('/register', async (req, res) => {
             return res.status(400).send('Email already exists')
         }
         res.status(500).send('Internal Server Error')
-    }
-})
-
-// Login a user
-router.post('/login', async (req, res) => {
-    try {
-        const user = await User.findOne({ user_email: req.body.user_email })
-        if (!user || user.user_password !== req.body.user_password) {
-            return res.status(401).send('Invalid credentials')
-        }
-        res.status(200).send(user)
-    } catch (err) {
-        res.status(500).send(err)
-    }
-})
-
-// Logout a user
-router.post('/logout', (req, res) => {
-    // Assuming you are using sessions
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send('Failed to logout')
-        }
-        res.status(200).send('Logged out successfully')
-    })
-})
-
-// Get user by ID
-router.get('/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id)
-        if (!user) {
-            return res.status(404).send('User not found')
-        }
-        res.status(200).send(user)
-    } catch (err) {
-        res.status(500).send(err)
-    }
-})
-
-// Create a new user
-router.post('/', async (req, res) => {
-    const newUser = new User(req.body)
-    try {
-        const savedUser = await newUser.save()
-        res.status(201).send(savedUser)
-    } catch (err) {
-        res.status(400).send(err)
     }
 })
 
