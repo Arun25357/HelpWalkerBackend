@@ -13,7 +13,16 @@ const userSchema = new mongoose.Schema({
     user_password: {
         type: String,
         required: true
+    },
+    user_phone: {
+        type: Number,
+        required: true
+    },
+    user_address: {
+        type: String,
+        required: true
     }
+    // ...other fields...
 })
 
 const User = mongoose.model('User', userSchema)

@@ -14,24 +14,30 @@ router.get('/', async (req, res) => {
 
 // Register a new user
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body
-    if (!name || !email || !password) {
-        return res.status(400).send('Name, email, and password are required')
+    const { user_name, user_email, user_password, user_phone, user_address } = req.body
+    if (!user_name || !user_email || !user_password || !user_phone || !user_address) {
+        return res.status(400).send('All fields are required')
     }
-    const newUser = new User({ name, email, password })
+    const newUser = new User({ user_name, user_email, user_password, user_phone, user_address })
     try {
         const savedUser = await newUser.save()
         res.status(201).send(savedUser)
     } catch (err) {
-        res.status(400).send(err)
+        if (err.name === 'ValidationError') {
+            return res.status(400).send(`Validation Error: ${err.message}`)
+        }
+        if (err.code === 11000) {
+            return res.status(400).send('Email already exists')
+        }
+        res.status(500).send('Internal Server Error')
     }
 })
 
 // Login a user
 router.post('/login', async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.body.email })
-        if (!user || user.password !== req.body.password) {
+        const user = await User.findOne({ user_email: req.body.user_email })
+        if (!user || user.user_password !== req.body.user_password) {
             return res.status(401).send('Invalid credentials')
         }
         res.status(200).send(user)
