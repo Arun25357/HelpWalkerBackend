@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt')
 // Register a new user
 router.post('/register', async (req, res) => {
     const { user_name, user_email, user_password, user_phone, user_address } = req.body
+    console.log('register : ',req.body)
     if (!user_name || !user_email || !user_password || !user_phone || !user_address) {
         return res.status(400).send('All fields are required')
     }
