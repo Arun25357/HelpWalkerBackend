@@ -1,21 +1,11 @@
 const mongoose = require('mongoose');
 
-const taskSchema = new mongoose.Schema({
+const TaskSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // ควรใช้ createdBy
+    status: { type: String, default: 'pending' },
+  
+}, { timestamps: true });
 
-    id: String,
-    user_id: {type : mongoose.Schema.Types.ObjectId, ref: 'User', required: true},
-    title: String,
-    description: String,
-    createdBy: String,
-    acceptedBy: String,
-    status: {
-        type: Number,
-        enum: [0, 1],
-        default: 0
-    }
-});
-
-const Task = mongoose.model('Task', taskSchema);
-
-module.exports = Task;
-
+module.exports = mongoose.model('Task', TaskSchema);
