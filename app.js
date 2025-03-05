@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const mongoose = require('mongoose');
 const cors = require('cors');
+require('dotenv').config();
 
 // เชื่อมต่อ MongoDB
 mongoose.Promise = global.Promise;
@@ -17,7 +18,7 @@ mongoose.connect('mongodb+srv://rattapongp:tey1234@helpwalker.q1z0s.mongodb.net/
 });
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var tasksRouter = require('./routes/tasks_router');
 const users = require('./routes/user_router');
 const authRouter = require('./routes/auth_router');
 
@@ -28,7 +29,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://10.30.136.56:3000'],  // ระบุแหล่งที่มาของ frontend
+  origin: ['http://localhost:3000', 'http://10.30.136.56:3001'],  // ระบุแหล่งที่มาของ frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -40,9 +41,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/user', users);
 app.use('/auth', authRouter);
+app.use('/tasks', tasksRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

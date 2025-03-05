@@ -1,8 +1,9 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
-const Task = require('../models/Task');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -44,11 +45,36 @@ router.post('/login', async (req, res) => {
         if (!isMatch) {
             return res.status(401).send('Invalid credentials');
         }
-        res.status(200).send(user);
+
+        // Generate the JWT token
+        const token = jwt.sign(
+            {
+                user_id: user._id,           // user id
+                email: user.user_email,     // user email
+                phone: user.user_phone,     // user phone (optional)
+                address: user.user_address, // user address (optional)
+            },
+            process.env.JWT_SECRET,  // Secret key (ensure it's defined in .env)
+            { expiresIn: '3h' } // Token expiration time (optional)
+        );
+
+        // Send response with user data and token
+        res.status(200).json({
+            user: {
+                _id: user._id,
+                user_email: user.user_email,
+                user_phone: user.user_phone,
+                user_address: user.user_address,
+            },
+            token,  // Include the token in the response
+        });
+
     } catch (err) {
+        console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 // Logout a user
 router.post('/logout', (req, res) => {
@@ -60,73 +86,5 @@ router.post('/logout', (req, res) => {
     });
 });
 
-// Create a new task
-router.post('/tasks', async (req, res) => {
-    const { title, description, createdBy, acceptedBy, status } = req.body;
-    if (!title || !description || !createdBy) {
-        return res.status(400).send('Title, description, and createdBy are required');
-    }
-    try {
-        const newTask = new Task({ title, description, createdBy, acceptedBy, status });
-        const savedTask = await newTask.save();
-        res.status(201).send(savedTask);
-    } catch (err) {
-        console.error('Error creating task:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Get all tasks
-router.get('/tasks', async (req, res) => {
-    try {
-        const tasks = await Task.find();
-        res.status(200).send(tasks);
-    } catch (err) {
-        console.error('Error fetching tasks:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Get a single task by ID
-router.get('/tasks/:id', async (req, res) => {
-    try {
-        const task = await Task.findById(req.params.id);
-        if (!task) {
-            return res.status(404).send('Task not found');
-        }
-        res.status(200).send(task);
-    } catch (err) {
-        console.error('Error fetching task:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Update a task
-router.put('/tasks/:id', async (req, res) => {
-    try {
-        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updatedTask) {
-            return res.status(404).send('Task not found');
-        }
-        res.status(200).send(updatedTask);
-    } catch (err) {
-        console.error('Error updating task:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Delete a task
-router.delete('/tasks/:id', async (req, res) => {
-    try {
-        const deletedTask = await Task.findByIdAndDelete(req.params.id);
-        if (!deletedTask) {
-            return res.status(404).send('Task not found');
-        }
-        res.status(200).send('Task deleted successfully');
-    } catch (err) {
-        console.error('Error deleting task:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 module.exports = router;
