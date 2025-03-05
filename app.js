@@ -8,7 +8,7 @@ const cors = require('cors');
 
 // เชื่อมต่อ MongoDB
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb+srv://rattapongp:tey1234@helpwalker.q1z0s.mongodb.net/?retryWrites=true&w=majority&appName=helpwalker')
+mongoose.connect('mongodb+srv://rattapongp:tey1234@helpwalker.q1z0s.mongodb.net/HelpWalker?retryWrites=true&w=majority&appName=helpwalker')
 .then(() => {
     console.log('Connected to MongoDB');  // ตรวจสอบว่าเชื่อมต่อ MongoDB สำเร็จหรือไม่
 })
