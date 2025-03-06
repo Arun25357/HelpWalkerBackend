@@ -9,7 +9,7 @@ require('dotenv').config();
 
 // เชื่อมต่อ MongoDB
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb+srv://rattapongp:tey1234@helpwalker.q1z0s.mongodb.net/HelpWalker?retryWrites=true&w=majority&appName=helpwalker')
+mongoose.connect(process.env.MONGO_URI)
 .then(() => {
     console.log('Connected to MongoDB');  // ตรวจสอบว่าเชื่อมต่อ MongoDB สำเร็จหรือไม่
 })
@@ -29,7 +29,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://10.30.136.56:3001'],  // ระบุแหล่งที่มาของ frontend
+  origin: process.env.API_URL.split(','),  // ระบุแหล่งที่มาของ frontend จาก environment
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -66,8 +66,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-
-
-
-
-// mongoose.connect('mongodb+srv://arun:1234@cluster0.xs8jb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
