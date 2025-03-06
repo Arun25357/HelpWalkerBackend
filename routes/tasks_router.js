@@ -64,6 +64,21 @@ router.post('/add-tasks', async (req, res) => {
     }
 });
 
+// Fetch tasks by user ID
+router.get('/user-tasks/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const tasks = await Task.find({ createdBy: userId });
+        if (!tasks || tasks.length === 0) {
+            return res.status(404).json({ success: false, message: 'No tasks found for this user' });
+        }
+        res.status(200).json({ success: true, tasks });
+    } catch (err) {
+        console.error('Error fetching tasks:', err);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
 
 // Get all tasks
 router.get('/get-allTasks', async (req, res) => {
