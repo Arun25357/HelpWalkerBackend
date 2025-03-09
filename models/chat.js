@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
 const chatSchema = new mongoose.Schema({
-    id: String,
     taskId: String,
     user1: String,
     user2: String,
@@ -9,11 +8,10 @@ const chatSchema = new mongoose.Schema({
         {
             sender: String,
             text: String,
-            timestamp: Date
+            timestamp: { type: Date, default: Date.now }
         }
     ]
-});
+}, { timestamps: true });
 
 const Chat = mongoose.model('Chat', chatSchema);
-
 module.exports = Chat;
