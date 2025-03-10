@@ -13,49 +13,44 @@ const verifyToken = (token) => {
     }
 };
 
-// Create a new task
-router.post('/add-tasks', async (req, res) => {
-    const { title, description, acceptedBy, status } = req.body;
-
-    // ดึง token จาก Header
+// Middleware to check token
+const checkToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
-
     if (!token) {
         return res.status(401).json({ success: false, message: 'No token provided' });
     }
+    try {
+        const decoded = verifyToken(token);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+};
+
+// Create a new task
+router.post('/add-tasks', checkToken, async (req, res) => {
+    const { title, description, acceptedBy, status } = req.body;
 
     try {
-        // ถอดรหัส token
-        const decoded = verifyToken(token);
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ success: false, message: 'Invalid token' });
-        }
-
-        console.log('Decoded Token:', decoded);
-
-        // ตรวจสอบว่า user มีอยู่ในระบบ
-        const user = await User.findById(decoded.user_id);
+        const user = await User.findById(req.user.user_id);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // ตรวจสอบข้อมูลที่จำเป็น
         if (!title || !description) {
             return res.status(400).json({ success: false, message: 'Title and description are required' });
         }
 
-        // สร้าง Task ใหม่ (เปลี่ยน user_id → createdBy)
         const newTask = new Task({
             title,
             description,
-            createdBy: decoded.user_id, // ✅ ใช้ createdBy แทน user_id
+            createdBy: req.user.user_id,
             acceptedBy,
             status,
         });
 
-        // บันทึกลงฐานข้อมูล
         const savedTask = await newTask.save();
-
         return res.status(201).json({ success: true, message: 'Task created successfully', task: savedTask });
 
     } catch (error) {
@@ -65,7 +60,7 @@ router.post('/add-tasks', async (req, res) => {
 });
 
 // Fetch tasks by user ID
-router.get('/user-tasks/:userId', async (req, res) => {
+router.get('/user-tasks/:userId', checkToken, async (req, res) => {
     const { userId } = req.params;
 
     try {
