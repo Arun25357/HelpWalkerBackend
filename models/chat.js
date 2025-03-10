@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const chatSchema = new mongoose.Schema({
+
     taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task", required: true }, // เปลี่ยนเป็น ObjectId
     messages: [
         {

@@ -64,7 +64,7 @@ app.use(function(err, req, res, next) {
 // Start the server
 const PORT = process.env.PORT || 3001;  // ตั้งค่าพอร์ตให้เป็น 3001 หรือพอร์ตที่กำหนดใน environment
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);  // ตรวจสอบว่าเซิร์ฟเวอร์เปิดแล้ว
+    console.log(`Server is running on http://localhost:${PORT}`);  
 });
 
 module.exports = app;
