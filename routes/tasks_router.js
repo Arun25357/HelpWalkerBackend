@@ -128,6 +128,7 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+
 // Accept a task
 router.post('/accept-task/:id', checkToken, async (req, res) => {
     try {
@@ -171,3 +172,4 @@ router.post('/accept-task/all', checkToken, async (req, res) => {
 });
 
 module.exports = router;
+
