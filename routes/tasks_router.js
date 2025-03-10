@@ -3,6 +3,7 @@ const router = express.Router();
 const Task = require('../models/Task');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Chat = require('../models/chat'); // เพิ่มการ import Chat model
 
 // Middleware to verify token
 const verifyToken = (token) => {
@@ -130,6 +131,8 @@ router.delete('/:id', async (req, res) => {
 
 
 // Accept a task
+
+
 router.post('/accept-task/:id', checkToken, async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
@@ -142,14 +145,23 @@ router.post('/accept-task/:id', checkToken, async (req, res) => {
         }
 
         task.acceptedBy = req.user.user_id;
-        const updatedTask = await task.save();
+        await task.save();
 
-        res.status(200).json({ success: true, message: 'Task accepted successfully', task: updatedTask });
+        // 📌 สร้างห้องแชทใหม่
+        const newChat = new Chat({
+            taskId: task._id,
+            participants: [task.createdBy, req.user.user_id],
+            messages: []
+        });
+        await newChat.save();
+
+        res.status(200).json({ success: true, message: 'Task accepted and chat created', chatId: newChat._id });
     } catch (err) {
         console.error('Error accepting task:', err);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
+
 
 // Accept all tasks
 router.post('/accept-task/all', checkToken, async (req, res) => {
