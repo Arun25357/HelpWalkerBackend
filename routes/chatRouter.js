@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Chat = require('../models/chat');
 
-// ดึงข้อความแชททั้งหมดตาม taskId
-router.get('/messages/:taskId', async (req, res) => {
+// ดึงข้อความแชททั้งหมดตาม userId
+router.get('/messages/:userId', async (req, res) => {
     try {
-        const chat = await Chat.findOne({ taskId: req.params.taskId })
+        const chat = await Chat.findOne({ userId: req.params.userId })
             .populate('messages.sender', 'name email') // ดึงข้อมูล sender ถ้ามี ref
             .lean(); // ลดภาระการใช้ Mongoose
 
@@ -13,7 +13,7 @@ router.get('/messages/:taskId', async (req, res) => {
 
         // อัปเดตสถานะว่าอ่านแล้ว
         await Chat.updateOne(
-            { taskId: req.params.taskId },
+            { userId: req.params.userId },
             { $set: { "messages.$[].read": true } } // อัปเดตทุกข้อความเป็นอ่านแล้ว
         );
 
@@ -26,18 +26,18 @@ router.get('/messages/:taskId', async (req, res) => {
 
 // ส่งข้อความใหม่
 router.post('/messages', async (req, res) => {
-    const { taskId, sender, text, messageType } = req.body;
+    const { userId, sender, text, messageType } = req.body;
 
     // ตรวจสอบค่าที่จำเป็น
-    if (!taskId || !sender || !text) {
+    if (!userId || !sender || !text) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
 
     try {
-        let chat = await Chat.findOne({ taskId });
+        let chat = await Chat.findOne({ userId });
 
         if (!chat) {
-            chat = new Chat({ taskId, messages: [] });
+            chat = new Chat({ userId, messages: [] });
         }
 
         chat.messages.push({ 
@@ -56,10 +56,10 @@ router.post('/messages', async (req, res) => {
     }
 });
 
-// ลบข้อความแชททั้งหมดของ taskId
-router.delete('/messages/:taskId', async (req, res) => {
+// ลบข้อความแชททั้งหมดของ userId
+router.delete('/messages/:userId', async (req, res) => {
     try {
-        const chat = await Chat.findOneAndDelete({ taskId: req.params.taskId });
+        const chat = await Chat.findOneAndDelete({ userId: req.params.userId });
 
         if (!chat) return res.status(404).json({ message: 'No chat found' });
 
