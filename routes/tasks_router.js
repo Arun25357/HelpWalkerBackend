@@ -30,7 +30,7 @@ const checkToken = (req, res, next) => {
 
 // Create a new task
 router.post('/add-tasks', checkToken, async (req, res) => {
-    const { title, description, acceptedBy, status } = req.body;
+    const { title, description, address, reward, status } = req.body;
 
     try {
         const user = await User.findById(req.user.user_id);
@@ -38,16 +38,18 @@ router.post('/add-tasks', checkToken, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (!title || !description) {
-            return res.status(400).json({ success: false, message: 'Title and description are required' });
+        if (!title || !description || !address) {
+            return res.status(400).json({ success: false, message: 'Title, description, and address are required' });
         }
 
         const newTask = new Task({
             title,
             description,
+            address, // เพิ่มที่อยู่เข้าไปใน task
+            reward, // เพิ่มของตอบแทนเข้าไป
             createdBy: req.user.user_id,
-            acceptedBy,
-            status,
+            status: status || 'Pending', // ตั้งค่า default เป็น 'Pending'
+            reward: reward || null // ตั้งค่า default เป็น null
         });
 
         const savedTask = await newTask.save();
