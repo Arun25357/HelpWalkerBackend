@@ -28,9 +28,13 @@ const checkToken = (req, res, next) => {
     }
 };
 
-// Create a new task
+// Create a new task (รวมโค้ดนี้จากที่แรก)
 router.post('/add-tasks', checkToken, async (req, res) => {
-    const { title, description, address, reward, status } = req.body;
+    const { title, description, createdBy, reward, address, latitude, longitude } = req.body;
+
+    if (!latitude || !longitude) {
+        return res.status(400).json({ message: 'ต้องระบุพิกัด latitude และ longitude' });
+    }
 
     try {
         const user = await User.findById(req.user.user_id);
@@ -38,18 +42,15 @@ router.post('/add-tasks', checkToken, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (!title || !description || !address) {
-            return res.status(400).json({ success: false, message: 'Title, description, and address are required' });
-        }
-
         const newTask = new Task({
             title,
             description,
-            address, // เพิ่มที่อยู่เข้าไปใน task
-            reward, // เพิ่มของตอบแทนเข้าไป
-            createdBy: req.user.user_id,
-            status: status || 'Pending', // ตั้งค่า default เป็น 'Pending'
-            reward: reward || null // ตั้งค่า default เป็น null
+            createdBy: req.user.user_id,  // กำหนด createdBy จากข้อมูล user ที่เข้ามา
+            reward,
+            address,
+            latitude,
+            longitude,
+            status: 'Pending'  // ตั้งค่า default เป็น 'Pending'
         });
 
         const savedTask = await newTask.save();
@@ -129,7 +130,6 @@ router.delete('/:id', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 // Accept a task
 router.post('/accept-task/:id', checkToken, async (req, res) => {
