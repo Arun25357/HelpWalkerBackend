@@ -128,4 +128,46 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Accept a task
+router.post('/accept-task/:id', checkToken, async (req, res) => {
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ success: false, message: 'Task not found' });
+        }
+
+        if (task.acceptedBy) {
+            return res.status(400).json({ success: false, message: 'Task already accepted' });
+        }
+
+        task.acceptedBy = req.user.user_id;
+        const updatedTask = await task.save();
+
+        res.status(200).json({ success: true, message: 'Task accepted successfully', task: updatedTask });
+    } catch (err) {
+        console.error('Error accepting task:', err);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+// Accept all tasks
+router.post('/accept-task/all', checkToken, async (req, res) => {
+    try {
+        const tasks = await Task.find({ acceptedBy: null });
+        if (!tasks || tasks.length === 0) {
+            return res.status(404).json({ success: false, message: 'No tasks available to accept' });
+        }
+
+        const updatedTasks = await Promise.all(tasks.map(async (task) => {
+            task.acceptedBy = req.user.user_id;
+            return await task.save();
+        }));
+
+        res.status(200).json({ success: true, message: 'All tasks accepted successfully', tasks: updatedTasks });
+    } catch (err) {
+        console.error('Error accepting all tasks:', err);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;
