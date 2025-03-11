@@ -4,6 +4,7 @@ const mongoose = require('mongoose'); // Add this line
 const Task = require('../models/Task');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Chat = require('../models/chat'); // เพิ่มการ import Chat model
 
 // Middleware to verify token
 const verifyToken = (token) => {
@@ -147,6 +148,8 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Accept a task
+
+
 router.post('/accept-task/:id', checkToken, async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ success: false, message: 'Invalid task ID' });
@@ -178,6 +181,7 @@ router.post('/accept-task/:id', checkToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
+
 
 // Accept all tasks
 router.post('/accept-task/all', checkToken, async (req, res) => {
