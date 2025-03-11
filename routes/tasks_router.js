@@ -27,6 +27,17 @@ const checkToken = (req, res, next) => {
         return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 };
+router.get('/tasks/accepted', checkToken, async (req, res) => {
+    const { createdBy } = req.query;
+
+    try {
+        const tasks = await Task.find({ createdBy, status: 'accepted' });
+        res.status(200).json(tasks);
+    } catch (err) {
+        console.error('Error fetching accepted tasks:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 // Create a new task (รวมโค้ดนี้จากที่แรก)
 router.post('/add-tasks', checkToken, async (req, res) => {

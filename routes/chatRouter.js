@@ -1,8 +1,90 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const { body, param, validationResult } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const Chat = require('../models/chat');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');  // นำเข้ามาใช้งาน
+const Task = require('../models/Task');  // นำเข้ามาใช้งาน
+
+// Middleware to verify token
+const verifyToken = (token) => {
+    try {
+        return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+        throw new Error('Invalid token');
+    }
+};
+
+// Middleware to check token
+const checkToken = async (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1]; // ดึง token จาก Authorization header
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    try {
+        const decoded = verifyToken(token);
+        req.user = decoded;  // เก็บข้อมูลผู้ใช้ที่ได้รับการยืนยันจาก token
+
+        // ตรวจสอบว่า user_id ที่ได้จาก token มีอยู่ในระบบหรือไม่
+        const user = await User.findById(req.user.user_id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // ตรวจสอบว่า taskId ที่ส่งมามีอยู่ในฐานข้อมูลหรือไม่
+        const taskId = req.params.taskId;  // ดึง taskId จากพารามิเตอร์ใน URL
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ success: false, message: 'Task not found' });
+        }
+
+        next();  // ส่งต่อไปยัง route handler หากทุกอย่างถูกต้อง
+    } catch (error) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+};
+
+// Example route to fetch messages for a task
+router.get('/chat/messages/:taskId', checkToken, async (req, res) => {
+    try {
+        const chat = await Chat.findOne({ taskId: req.params.taskId })
+            .populate('messages.sender', 'name email')
+            .lean();
+        
+        if (!chat) {
+            return res.status(404).json({ message: 'No chat found for this taskId' });
+        }
+
+        res.json(chat.messages);  // ส่งกลับข้อมูลข้อความที่พบ
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// Route สำหรับส่งข้อความ
+// ตัวอย่าง route สำหรับ POST ข้อความใหม่
+router.post('/chat/messages', checkToken, async (req, res) => {
+    try {
+        const { userId, sender, taskId, text, messageType } = req.body;
+        const newMessage = new Message({ userId, sender, taskId, text, messageType });
+
+        await newMessage.save();
+
+        // ส่งคืนข้อมูลที่จำเป็น
+        const chat = await Chat.findOne({ taskId: taskId });
+        chat.messages.push(newMessage);
+        await chat.save();
+
+        res.status(200).json({ chat });  // ส่งกลับข้อมูล chat ที่อัพเดต
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to send message' });
+    }
+});
+
+
 
 // 📌 ดึงข้อความแชททั้งหมดตาม userId
 router.get('/messages/:userId', async (req, res) => {
@@ -15,8 +97,18 @@ router.get('/messages/:userId', async (req, res) => {
 
         // 📌 อัปเดตเฉพาะข้อความที่ยังไม่ได้อ่าน
         await Chat.updateOne(
-            { userId: req.params.userId, "messages.read": false },
-            { $set: { "messages.$[].read": true } }
+            { 
+                userId: req.params.userId, 
+                "messages.read": false 
+            },
+            { 
+                $set: { "messages.$[elem].read": true } 
+            },
+            {
+                arrayFilters: [
+                    { "elem.read": false } // อัปเดตเฉพาะข้อความที่มี read: false
+                ]
+            }
         );
 
         res.json(chat.messages);
@@ -26,45 +118,6 @@ router.get('/messages/:userId', async (req, res) => {
     }
 });
 
-// 📌 ส่งข้อความใหม่ พร้อมตรวจสอบค่าข้อมูล
-router.post(
-    '/messages',
-    [
-        body('userId').isMongoId().withMessage('Invalid userId'),
-        body('sender').isMongoId().withMessage('Invalid sender'),
-        body('text').notEmpty().withMessage('Message text cannot be empty'),
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { userId, sender, text, messageType } = req.body;
-
-        try {
-            let chat = await Chat.findOne({ userId });
-
-            if (!chat) {
-                chat = new Chat({ userId, messages: [] });
-            }
-
-            chat.messages.push({ 
-                sender, 
-                text, 
-                timestamp: new Date(),
-                messageType: messageType || 'text'
-            });
-
-            await chat.save();
-
-            res.status(201).json({ message: 'Message sent successfully', chat });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Failed to send message' });
-        }
-    }
-);
 
 // 📌 ลบข้อความแชททั้งหมดของ userId
 router.delete('/messages/:userId', async (req, res) => {
