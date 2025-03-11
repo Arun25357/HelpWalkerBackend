@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose'); // Add this line
 const Task = require('../models/Task');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Chat = require('../models/chat'); // เพิ่มการ import Chat model
 
 // Middleware to verify token
 const verifyToken = (token) => {
@@ -30,25 +28,9 @@ const checkToken = (req, res, next) => {
     }
 };
 
-router.get('/tasks/accepted', checkToken, async (req, res) => {
-    const { createdBy } = req.query;
-
-    try {
-        const tasks = await Task.find({ createdBy, status: 'accepted' });
-        res.status(200).json(tasks);
-    } catch (err) {
-        console.error('Error fetching accepted tasks:', err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-// Create a new task (รวมโค้ดนี้จากที่แรก)
+// Create a new task
 router.post('/add-tasks', checkToken, async (req, res) => {
-    const { title, description, createdBy, reward, address, latitude, longitude } = req.body;
-
-    if (!latitude || !longitude) {
-        return res.status(400).json({ message: 'ต้องระบุพิกัด latitude และ longitude' });
-    }
+    const { title, description, acceptedBy, status } = req.body;
 
     try {
         const user = await User.findById(req.user.user_id);
@@ -56,15 +38,17 @@ router.post('/add-tasks', checkToken, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
+        if (!title || !description) {
+            return res.status(400).json({ success: false, message: 'Title and description are required' });
+        }
+
         const newTask = new Task({
             title,
             description,
-            createdBy: req.user.user_id,  // กำหนด createdBy จากข้อมูล user ที่เข้ามา
-            reward,
-            address,
-            latitude,
-            longitude,
-            status: 'Pending'  // ตั้งค่า default เป็น 'Pending'
+            phone,
+            createdBy: req.user.user_id,
+            acceptedBy,
+            status,
         });
 
         const savedTask = await newTask.save();
@@ -78,9 +62,6 @@ router.post('/add-tasks', checkToken, async (req, res) => {
 
 // Fetch tasks by user ID
 router.get('/user-tasks/:userId', checkToken, async (req, res) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
-        return res.status(400).json({ success: false, message: 'Invalid user ID' });
-    }
     const { userId } = req.params;
 
     try {
@@ -95,14 +76,10 @@ router.get('/user-tasks/:userId', checkToken, async (req, res) => {
     }
 });
 
-// Get all tasks (กรองภารกิจที่ไม่ใช่ของผู้ใช้)
-router.get('/get-allTasks', checkToken, async (req, res) => {
+// Get all tasks
+router.get('/get-allTasks', async (req, res) => {
     try {
-        const userId = req.user.user_id;  // รับ userId จาก Token
-
-        // ดึงภารกิจทั้งหมดที่ไม่ได้ถูกสร้างโดยผู้ใช้ (createdBy !== userId) และสถานะไม่เป็น 'completed'
-        const tasks = await Task.find({ createdBy: { $ne: userId }, status: { $ne: 'completed' } });
-
+        const tasks = await Task.find();
         res.status(200).send(tasks);
     } catch (err) {
         console.error('Error fetching tasks:', err);
@@ -152,69 +129,6 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// Accept a task
 
-
-router.post('/accept-task/:id', checkToken, async (req, res) => {
-    const taskId = req.params.id;
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-        return res.status(400).json({ success: false, message: 'Invalid task ID' });
-    }
-
-    try {
-        const task = await Task.findById(taskId);
-        if (!task) {
-            return res.status(404).json({ success: false, message: 'Task not found' });
-        }
-
-        // ตรวจสอบว่า task นี้ได้ถูกยอมรับแล้วหรือยัง
-        if (task.acceptedBy) {
-            return res.status(400).json({ success: false, message: 'Task already accepted' });
-        }
-
-        // อัพเดตข้อมูล task
-        task.acceptedBy = req.user.user_id; // บันทึก user ที่ยอมรับภารกิจ
-        task.status = 'Accepted'; // เปลี่ยนสถานะของภารกิจเป็น 'Accepted'
-        await task.save(); // บันทึกการเปลี่ยนแปลงในฐานข้อมูล
-
-        // สร้างห้องแชทใหม่
-        const newChat = new Chat({
-            taskId: task._id,
-            participants: [task.createdBy, req.user.user_id],
-            messages: []
-        });
-        await newChat.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Task accepted and chat created successfully',
-            chatId: newChat._id
-        });
-    } catch (err) {
-        console.error('Error accepting task:', err);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
-});
-
-
-// Accept all tasks
-router.post('/accept-task/all', checkToken, async (req, res) => {
-    try {
-        const tasks = await Task.find({ acceptedBy: null });
-        if (!tasks || tasks.length === 0) {
-            return res.status(404).json({ success: false, message: 'No tasks available to accept' });
-        }
-
-        const updatedTasks = await Promise.all(tasks.map(async (task) => {
-            task.acceptedBy = req.user.user_id;
-            return await task.save();
-        }));
-
-        res.status(200).json({ success: true, message: 'All tasks accepted successfully', tasks: updatedTasks });
-    } catch (err) {
-        console.error('Error accepting all tasks:', err);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
-});
 
 module.exports = router;
