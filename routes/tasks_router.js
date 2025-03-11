@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose'); // Add this line
 const Task = require('../models/Task');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -28,10 +29,25 @@ const checkToken = (req, res, next) => {
         return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 };
+router.get('/tasks/accepted', checkToken, async (req, res) => {
+    const { createdBy } = req.query;
 
-// Create a new task
+    try {
+        const tasks = await Task.find({ createdBy, status: 'accepted' });
+        res.status(200).json(tasks);
+    } catch (err) {
+        console.error('Error fetching accepted tasks:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Create a new task (รวมโค้ดนี้จากที่แรก)
 router.post('/add-tasks', checkToken, async (req, res) => {
-    const { title, description, acceptedBy, status } = req.body;
+    const { title, description, createdBy, reward, address, latitude, longitude } = req.body;
+
+    if (!latitude || !longitude) {
+        return res.status(400).json({ message: 'ต้องระบุพิกัด latitude และ longitude' });
+    }
 
     try {
         const user = await User.findById(req.user.user_id);
@@ -39,16 +55,15 @@ router.post('/add-tasks', checkToken, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (!title || !description) {
-            return res.status(400).json({ success: false, message: 'Title and description are required' });
-        }
-
         const newTask = new Task({
             title,
             description,
-            createdBy: req.user.user_id,
-            acceptedBy,
-            status,
+            createdBy: req.user.user_id,  // กำหนด createdBy จากข้อมูล user ที่เข้ามา
+            reward,
+            address,
+            latitude,
+            longitude,
+            status: 'Pending'  // ตั้งค่า default เป็น 'Pending'
         });
 
         const savedTask = await newTask.save();
@@ -62,6 +77,9 @@ router.post('/add-tasks', checkToken, async (req, res) => {
 
 // Fetch tasks by user ID
 router.get('/user-tasks/:userId', checkToken, async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+        return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
     const { userId } = req.params;
 
     try {
@@ -129,11 +147,13 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-
 // Accept a task
 
 
 router.post('/accept-task/:id', checkToken, async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ success: false, message: 'Invalid task ID' });
+    }
     try {
         const task = await Task.findById(req.params.id);
         if (!task) {
@@ -184,4 +204,3 @@ router.post('/accept-task/all', checkToken, async (req, res) => {
 });
 
 module.exports = router;
-
