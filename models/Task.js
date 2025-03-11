@@ -8,6 +8,7 @@ const TaskSchema = new mongoose.Schema({
     address: { type: String, required: true }, // เพิ่มฟิลด์ที่อยู่
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
+    phone: { type: String, required: true }, // เพิ่มฟิลด์เบอร์โทรศัพท์
     reward: { type: String }, // เพิ่มของตอบแทน (ถ้ามี)
 }, { timestamps: true });
 
